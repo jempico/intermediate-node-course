@@ -4,6 +4,7 @@ const bodyParser= require('body-parser');
 const port=8000;
 const app= express();
 const User=require('./models/User');
+const bcrypt = require('bcrypt');
 
 // Conntecting to Mongo local db
 mongoose.connect('mongodb://localhost/userData')
@@ -16,26 +17,34 @@ app.listen(port, ()=>{
 
 
 // CREATE: Go to Postman to see Post request
-app.post('/users',(req,res)=>{
+app.post('/users', (req,res)=>{
+  let hash = bcrypt.hashSync(req.body.newData.password, 10);
   User.create(
-    {...req.body.newData}, 
-    (err,data)=>{ sendResponse(res, err, data)}
+    { 
+      name:req.body.newData.name,
+      email:req.body.newData.email,
+      password:hash
+    }, 
+    (err,data)=>{ 
+      sendResponse(res, err, data);
+    }
     )
+    //>To compare passwords:
+    //console.log(bcrypt.compareSync(req.body.newData.password, hash));
   })
-
 
 app.route('/users/:id')
 // READ
 .get((req,res)=>{
   User.findById(req.params.id,(err,data)=>{
-    sendResponse(res, err, data)
+    sendResponse(res, err, data);
   })
 })
 // UPDATE
 .put((req,res)=>{
   User.findByIdAndUpdate(
     req.params.id,
-    {...req.body.newData}, //>Using spread operator so as to be able to update each record passing only the body parameter to update. Otherwise, if the values were not included, they would be set to "null". 
+    {...req.body.newData}, //> Using spread operator so as to be able to update each record passing only the body parameter to update. Otherwise, if the values were not included, they would be set to "null". 
     {
       new:true
     },
