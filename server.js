@@ -3,9 +3,36 @@ const mongoose= require('mongoose');
 const bodyParser= require('body-parser');
 const port=8000;
 const app= express();
-const User=require('./models/User');
+//const User=require('./models/User');
+//const Hobby=require('./models/Hobby');
+const Schema = mongoose.Schema;
+
 const bcrypt = require('bcrypt');
 
+
+const HobbySchema = Schema({
+  title: { type: String, required: true},
+  description: { type: String}
+});
+
+let Hobby = mongoose.model('hobby', HobbySchema);
+
+const UserSchema = Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
+  hobbies: [{ type: Schema.Types.ObjectId, ref:'Hobby'}]
+});
+
+let User = mongoose.model('user',UserSchema)
+
+User
+  .find()
+  .populate("hobby")
+  .then(user => {
+    res.json(user);
+  });
+  
 // Conntecting to Mongo local db
 mongoose.connect('mongodb://localhost/userData')
 
@@ -59,6 +86,38 @@ app.route('/users/:id')
   )
 })
 
+app.use("/", async (req, res) => {
+  await Hobby.remove({});
+  await Hobby.create({
+    title : "Jogging",
+    description: 'Running in the park'
+  })
+  await Hobby.create({
+    title : "Cooking",
+    description : 'preparing yummy meals'
+  })
+  await Hobby.create({
+    title : "Reading",
+    description: 'smart enough to read 5 books a month'
+  })
+  await User.remove({});
+  await User.create({
+      name : "Eloi",
+      email : "eloi@email.com",
+      password :"secretPassword",
+      hobbies : await Hobby.findOne({title: 'Jogging'})
+  })
+  await User.create({
+    name : "Ivan",
+    email : "ivan@email.com",
+    password :"secretPassword",
+    hobbies : await Hobby.find()
+})
+  res.json({
+    hobbies: await Hobby.find(),
+    users: await User.find(),
+  })
+})
 //Managing Response Callback
 
 function sendResponse(res, err, data){
